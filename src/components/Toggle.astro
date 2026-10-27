@@ -1,0 +1,31 @@
+---
+interface Props {
+  param: string;
+  rotulo: string;
+  ligado?: boolean;
+}
+
+const { param, rotulo, ligado = false } = Astro.props;
+---
+
+<label class="controle toggle">
+  <input type="checkbox" data-param={param} checked={ligado} />
+  <span>{rotulo}</span>
+</label>
+
+<style>
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+</style>

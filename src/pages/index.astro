@@ -1,0 +1,105 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+
+const sims = await getCollection('simulacoes', ({ data }) => import.meta.env.DEV || !data.rascunho);
+sims.sort((a, b) => a.data.titulo.localeCompare(b.data.titulo, 'pt-BR'));
+
+const secoes = [
+  { id: 'fisica', nome: 'Física', itens: sims.filter((s) => s.data.disciplina === 'fisica') },
+  { id: 'matematica', nome: 'Matemática', itens: sims.filter((s) => s.data.disciplina === 'matematica') },
+] as const;
+---
+
+<Layout>
+  <section class="hero container">
+    <h1>Simulações para a sala de aula</h1>
+    <p>Experimentos interativos de física e matemática. Mude os parâmetros, observe o que acontece e discuta.</p>
+  </section>
+
+  {
+    secoes.map((secao) => (
+      <section id={secao.id} class="container secao">
+        <h2>{secao.nome}</h2>
+        {secao.itens.length === 0 ? (
+          <p class="vazio">Em breve.</p>
+        ) : (
+          <ul class="grid">
+            {secao.itens.map((sim) => (
+              <li>
+                <a class={`card card-${sim.data.disciplina}`} href={`/simulacoes/${sim.id}/`}>
+                  <h3>{sim.data.titulo}</h3>
+                  <p>{sim.data.descricao}</p>
+                  {sim.data.serie && <span class={`tag tag-${sim.data.disciplina}`}>{sim.data.serie}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    ))
+  }
+</Layout>
+
+<style>
+  .hero {
+    padding: 3.5rem 0 1rem;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0 0 0.75rem;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 1.15rem;
+    max-width: 55ch;
+    margin: 0;
+  }
+  .secao {
+    margin-top: 2.5rem;
+    scroll-margin-top: 1rem;
+  }
+  .secao h2 {
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+  }
+  .vazio {
+    color: var(--muted);
+  }
+  .grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    display: block;
+    height: 100%;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--fisica);
+    border-radius: var(--radius);
+    color: var(--ink);
+    text-decoration: none;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .card-matematica {
+    border-top-color: var(--matematica);
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.07);
+  }
+  .card h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1.2rem;
+  }
+  .card p {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+</style>

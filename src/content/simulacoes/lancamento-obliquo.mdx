@@ -1,0 +1,39 @@
+---
+titulo: Lançamento oblíquo
+descricao: Um projétil lançado com velocidade e ângulo ajustáveis. Compare alcances, alturas e tempos de voo.
+disciplina: fisica
+serie: 1º ano EM
+tags: [cinemática, movimento bidimensional, gravidade]
+---
+
+import LancamentoObliquo from '../../components/sims/LancamentoObliquo.astro';
+
+<LancamentoObliquo />
+
+## O que observar
+
+O movimento se decompõe em dois movimentos independentes:
+
+- **Horizontal (x):** velocidade constante, porque nenhuma força age nessa direção (MU).
+- **Vertical (y):** aceleração constante $-g$ (MUV).
+
+Com os vetores ligados, repare que $v_x$ (verde) não muda, enquanto $v_y$ (roxo) diminui, zera no ponto mais alto e inverte de sentido.
+
+## Equações
+
+$$
+x(t) = v_0 \cos\theta \, t \qquad y(t) = h_0 + v_0 \sin\theta \, t - \frac{g\,t^2}{2}
+$$
+
+Para lançamento a partir do chão ($h_0 = 0$):
+
+$$
+A = \frac{v_0^2 \sin 2\theta}{g} \qquad H_{\text{máx}} = \frac{v_0^2 \sin^2\theta}{2g} \qquad t_{\text{voo}} = \frac{2 v_0 \sin\theta}{g}
+$$
+
+## Perguntas para a turma
+
+1. Lance com 30° e depois com 60°, sem mudar a velocidade. O que acontece com o alcance? Por quê?
+2. Qual ângulo dá o maior alcance? Isso continua valendo com altura inicial maior que zero?
+3. Se dobrarmos a velocidade inicial, o alcance dobra? (Teste e compare com a fórmula.)
+4. Troque a gravidade para a da Lua. Quantas vezes maior fica o alcance?

@@ -1,0 +1,159 @@
+---
+/**
+ * Moldura padrão de toda simulação: palco (canvas), leituras, barra de
+ * ferramentas e painel de controles. Os controles entram no slot padrão;
+ * as leituras (valores ao vivo) entram no slot "leituras".
+ */
+interface Props {
+  id: string;
+  /** Botões extras na barra, ex.: [{ acao: 'limpar', rotulo: 'Limpar rastros' }] */
+  extras?: { acao: string; rotulo: string }[];
+}
+
+const { id, extras = [] } = Astro.props;
+---
+
+<div class="sim" data-sim={id}>
+  <div class="palco-wrap">
+    <div class="palco" data-palco></div>
+    <dl class="leituras"><slot name="leituras" /></dl>
+  </div>
+  <div class="painel">
+    <div class="barra">
+      <button type="button" class="primario" data-acao="play" aria-pressed="false">▶ Iniciar</button>
+      <button type="button" data-acao="reset" title="Atalho: R">↺ Reiniciar</button>
+      {extras.map((e) => <button type="button" data-acao={e.acao}>{e.rotulo}</button>)}
+    </div>
+    <div class="controles"><slot /></div>
+    <div class="barra secundaria">
+      <button type="button" data-acao="tela-cheia" title="Atalho: F">⛶ Tela cheia</button>
+      <button type="button" data-acao="compartilhar" title="Copia um link com os valores atuais">🔗 Copiar link</button>
+    </div>
+    <p class="atalhos">Espaço: iniciar/pausar · R: reiniciar · F: tela cheia</p>
+  </div>
+</div>
+
+<style>
+  .sim {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 1rem;
+    margin: 1.5rem 0 2rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .palco-wrap {
+    position: relative;
+    min-width: 0;
+  }
+  .palco {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fdfdfb;
+  }
+  .palco :global(canvas) {
+    display: block;
+  }
+  .leituras {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.5rem;
+    margin: 0.75rem 0 0;
+  }
+  .leituras :global(div) {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+  }
+  .leituras :global(dt) {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .leituras :global(dd) {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .painel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .barra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .controles {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  button {
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 0.55rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    min-height: 44px;
+  }
+  button:hover {
+    background: var(--bg);
+  }
+  button.primario {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    flex: 1;
+  }
+  button.primario:hover {
+    filter: brightness(1.1);
+  }
+  .secundaria button {
+    flex: 1;
+    font-size: 0.85rem;
+  }
+  .atalhos {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* Tela cheia (projetor): palco ocupa tudo, controles maiores */
+  .sim:fullscreen {
+    border-radius: 0;
+    border: 0;
+    margin: 0;
+    padding: 1.5rem;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    font-size: 1.1rem;
+    overflow: auto;
+  }
+  .sim:fullscreen .palco-wrap {
+    display: flex;
+    flex-direction: column;
+  }
+  .sim:fullscreen .palco {
+    flex: 1;
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+  .sim:fullscreen :global(dd) {
+    font-size: 1.25rem;
+  }
+
+  @media (max-width: 820px) {
+    .sim {
+      grid-template-columns: 1fr;
+      padding: 0.75rem;
+    }
+  }
+</style>

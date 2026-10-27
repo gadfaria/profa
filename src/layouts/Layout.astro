@@ -1,0 +1,89 @@
+---
+import 'katex/dist/katex.min.css';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = 'Simulações interativas de física e matemática para a sala de aula.' } = Astro.props;
+const fullTitle = title ? `${title} · Profa. Larissa` : 'Profa. Larissa · Física e Matemática';
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>{fullTitle}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container bar">
+        <a href="/" class="brand">Profa. Larissa</a>
+        <nav>
+          <a href="/#fisica">Física</a>
+          <a href="/#matematica">Matemática</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="container">Profa. Larissa R. S. Lima · {new Date().getFullYear()}</div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 64px;
+  }
+  .brand {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    gap: 1.25rem;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  nav a:hover {
+    color: var(--ink);
+  }
+  main {
+    min-height: calc(100vh - 140px);
+  }
+  .site-footer {
+    border-top: 1px solid var(--line);
+    padding: 1.5rem 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 4rem;
+  }
+</style>

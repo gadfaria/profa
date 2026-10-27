@@ -1,0 +1,314 @@
+---
+import SimFrame from '../SimFrame.astro';
+import Slider from '../Slider.astro';
+import Toggle from '../Toggle.astro';
+---
+
+<SimFrame id="lancamento-obliquo" extras={[{ acao: 'limpar', rotulo: 'Limpar rastros' }]}>
+  <Slider param="v0" rotulo="Velocidade inicial" min={1} max={50} passo={0.5} valor={20} unidade="m/s" />
+  <Slider param="angulo" rotulo="Ângulo de lançamento" min={0} max={90} valor={45} unidade="°" />
+  <Slider param="h0" rotulo="Altura inicial" min={0} max={50} passo={0.5} valor={0} unidade="m" />
+  <Slider
+    param="g"
+    rotulo="Gravidade"
+    min={1}
+    max={25}
+    passo={0.1}
+    valor={9.8}
+    unidade="m/s²"
+    presets={[
+      { rotulo: 'Lua', valor: 1.6 },
+      { rotulo: 'Marte', valor: 3.7 },
+      { rotulo: 'Terra', valor: 9.8 },
+      { rotulo: 'Júpiter', valor: 24.8 },
+    ]}
+  />
+  <Slider param="ritmo" rotulo="Velocidade da animação" min={0.1} max={2} passo={0.1} valor={1} unidade="×" />
+  <Toggle param="vetores" rotulo="Mostrar vetores velocidade" ligado />
+  <Toggle param="prevista" rotulo="Mostrar trajetória prevista" ligado />
+
+  <Fragment slot="leituras">
+    <div><dt>Tempo</dt><dd data-leitura="t">0 s</dd></div>
+    <div><dt>Posição x</dt><dd data-leitura="x">0 m</dd></div>
+    <div><dt>Altura y</dt><dd data-leitura="y">0 m</dd></div>
+    <div><dt>vₓ</dt><dd data-leitura="vx">–</dd></div>
+    <div><dt>vᵧ</dt><dd data-leitura="vy">–</dd></div>
+    <div><dt>Alcance</dt><dd data-leitura="alcance">–</dd></div>
+    <div><dt>Altura máx.</dt><dd data-leitura="hmax">–</dd></div>
+    <div><dt>Tempo de voo</dt><dd data-leitura="tvoo">–</dd></div>
+  </Fragment>
+</SimFrame>
+
+<script>
+  import p5 from 'p5';
+  import { iniciarSim, fmt, type Sim } from '../../lib/sim';
+
+  interface Lancamento {
+    v0: number;
+    angulo: number;
+    h0: number;
+    g: number;
+  }
+
+  const COR = {
+    grade: '#ecebe6',
+    eixo: '#9a9ea8',
+    texto: '#5f6470',
+    chao: '#d9d5cb',
+    bola: '#2563eb',
+    rastro: '#2563eb',
+    fantasma: '#bfc3cc',
+    vx: '#16a34a',
+    vy: '#c026d3',
+    v: '#1d1f24',
+  };
+
+  /** Grandezas analíticas do lançamento. */
+  function analise({ v0, angulo, h0, g }: Lancamento) {
+    const rad = (angulo * Math.PI) / 180;
+    const vx0 = v0 * Math.cos(rad);
+    const vy0 = v0 * Math.sin(rad);
+    const tvoo = (vy0 + Math.sqrt(vy0 * vy0 + 2 * g * h0)) / g;
+    return {
+      vx0,
+      vy0,
+      tvoo,
+      alcance: vx0 * tvoo,
+      hmax: vy0 > 0 ? h0 + (vy0 * vy0) / (2 * g) : h0,
+      posicao: (t: number) => ({ x: vx0 * t, y: h0 + vy0 * t - (g * t * t) / 2 }),
+    };
+  }
+
+  /** Passo "redondo" de grade (1, 2 ou 5 × 10ⁿ) com pelo menos `minPx` pixels. */
+  function passoGrade(escala: number, minPx = 60) {
+    const bruto = minPx / escala;
+    const pot = 10 ** Math.floor(Math.log10(bruto));
+    return [1, 2, 5, 10].map((m) => m * pot).find((p) => p >= bruto)!;
+  }
+
+  function montar(sim: Sim) {
+    const lerLancamento = (): Lancamento => ({
+      v0: sim.params.v0 as number,
+      angulo: sim.params.angulo as number,
+      h0: sim.params.h0 as number,
+      g: sim.params.g as number,
+    });
+
+    let atual = lerLancamento();
+    let a = analise(atual);
+    let t = 0;
+    const fantasmas: Lancamento[] = [];
+
+    function reiniciar() {
+      atual = lerLancamento();
+      a = analise(atual);
+      t = 0;
+      sim.setRodando(false);
+    }
+
+    sim.onParam((nome) => {
+      if (['v0', 'angulo', 'h0', 'g'].includes(nome)) reiniciar();
+    });
+    sim.onAcao('reset', reiniciar);
+    sim.onAcao('limpar', () => (fantasmas.length = 0));
+    sim.onAcao('play', () => {
+      if (!sim.rodando && t >= a.tvoo) t = 0; // já caiu: lança de novo
+      sim.setRodando(!sim.rodando);
+    });
+
+    new p5((p: p5) => {
+      const margem = { esq: 56, dir: 64, cima: 24, baixo: 40 };
+
+      const tracejado = (segmentos: number[]) => (p.drawingContext as CanvasRenderingContext2D).setLineDash(segmentos);
+      const tamanho = () => ({ w: sim.palco.clientWidth, h: sim.palco.clientHeight });
+
+      p.setup = () => {
+        const { w, h } = tamanho();
+        p.createCanvas(w, h);
+        p.textFont('Inter, system-ui, sans-serif');
+        new ResizeObserver(() => {
+          const { w, h } = tamanho();
+          if (w > 0 && h > 0) p.resizeCanvas(w, h);
+        }).observe(sim.palco);
+      };
+
+      p.draw = () => {
+        if (sim.rodando) {
+          t += (p.deltaTime / 1000) * (sim.params.ritmo as number);
+          if (t >= a.tvoo) {
+            t = a.tvoo;
+            sim.setRodando(false);
+            fantasmas.push(atual);
+            if (fantasmas.length > 6) fantasmas.shift();
+          }
+        }
+
+        // Escala: cabe o lançamento atual e os rastros anteriores, sem distorcer (1 m = 1 m nos dois eixos).
+        const todos = [atual, ...fantasmas].map(analise);
+        const mundoW = Math.max(10, ...todos.map((x) => x.alcance)) * 1.08;
+        const mundoH = Math.max(5, ...todos.map((x) => x.hmax)) * 1.15;
+        const areaW = p.width - margem.esq - margem.dir;
+        const areaH = p.height - margem.cima - margem.baixo;
+        const k = Math.min(areaW / mundoW, areaH / mundoH);
+        const px = (x: number) => margem.esq + x * k;
+        const py = (y: number) => p.height - margem.baixo - y * k;
+
+        p.background('#fdfdfb');
+        desenharGrade(k, px, py);
+
+        // Rastros de lançamentos anteriores
+        for (const f of fantasmas) {
+          const af = analise(f);
+          curva(af, af.tvoo, COR.fantasma, 1.5, []);
+        }
+
+        // Trajetória prevista
+        if (sim.params.prevista) {
+          curva(a, a.tvoo, COR.rastro, 1.5, [6, 6], 90);
+          if (atual.angulo > 0) {
+            tracejado([3, 5]);
+            p.stroke(COR.eixo);
+            p.strokeWeight(1);
+            p.line(px(0), py(a.hmax), p.width - margem.dir, py(a.hmax));
+            tracejado([]);
+            p.noStroke();
+            p.fill(COR.texto);
+            p.textSize(12);
+            p.textAlign(p.RIGHT, p.BOTTOM);
+            p.text(`h máx = ${fmt(a.hmax, 1)} m`, p.width - margem.dir, py(a.hmax) - 3);
+          }
+        }
+
+        // Caminho percorrido até agora
+        curva(a, t, COR.rastro, 3, []);
+
+        // Torre (altura inicial) e canhão
+        if (atual.h0 > 0) {
+          p.noStroke();
+          p.fill(COR.chao);
+          p.rect(px(0) - 14, py(atual.h0), 14, atual.h0 * k);
+        }
+        p.push();
+        p.translate(px(0), py(atual.h0));
+        p.rotate((-atual.angulo * Math.PI) / 180);
+        p.fill('#3b3f48');
+        p.noStroke();
+        p.rect(0, -5, 34, 10, 3);
+        p.pop();
+        p.fill('#3b3f48');
+        p.circle(px(0), py(atual.h0), 18);
+
+        // Projétil
+        const pos = a.posicao(t);
+        const bx = px(pos.x);
+        const by = py(Math.max(0, pos.y));
+        const vy = a.vy0 - atual.g * t;
+
+        if (sim.params.vetores) {
+          const kv = 2.4; // pixels por m/s
+          seta(bx, by, a.vx0 * kv, 0, COR.vx, 'vₓ');
+          seta(bx, by, 0, -vy * kv, COR.vy, 'vᵧ');
+          seta(bx, by, a.vx0 * kv, -vy * kv, COR.v, 'v');
+        }
+
+        p.stroke('white');
+        p.strokeWeight(2);
+        p.fill(COR.bola);
+        p.circle(bx, by, 16);
+
+        // Marca do alcance quando chega ao chão
+        if (t >= a.tvoo && a.alcance > 0) {
+          p.noStroke();
+          p.fill(COR.bola);
+          p.textSize(13);
+          p.textAlign(p.CENTER, p.BOTTOM);
+          p.text(`${fmt(a.alcance, 1)} m`, bx, by - 14);
+        }
+
+        sim.leitura('t', `${fmt(t, 2)} s`);
+        sim.leitura('x', `${fmt(pos.x, 1)} m`);
+        sim.leitura('y', `${fmt(Math.max(0, pos.y), 1)} m`);
+        sim.leitura('vx', `${fmt(a.vx0, 1)} m/s`);
+        sim.leitura('vy', `${fmt(vy, 1)} m/s`);
+        sim.leitura('alcance', `${fmt(a.alcance, 1)} m`);
+        sim.leitura('hmax', `${fmt(a.hmax, 1)} m`);
+        sim.leitura('tvoo', `${fmt(a.tvoo, 2)} s`);
+
+        function curva(an: ReturnType<typeof analise>, ate: number, cor: string, peso: number, tracos: number[], alfa = 255) {
+          if (ate <= 0) return;
+          const c = p.color(cor);
+          c.setAlpha(alfa);
+          p.noFill();
+          p.stroke(c);
+          p.strokeWeight(peso);
+          tracejado(tracos);
+          p.beginShape();
+          const n = 120;
+          for (let i = 0; i <= n; i++) {
+            const q = an.posicao((ate * i) / n);
+            p.vertex(px(q.x), py(Math.max(0, q.y)));
+          }
+          p.endShape();
+          tracejado([]);
+        }
+      };
+
+      function desenharGrade(k: number, px: (x: number) => number, py: (y: number) => number) {
+        const passo = passoGrade(k);
+        const xMax = (p.width - margem.esq - margem.dir) / k;
+        const yMax = (p.height - margem.cima - margem.baixo) / k;
+
+        p.textSize(11);
+        p.strokeWeight(1);
+        for (let x = 0; x <= xMax + 1e-9; x += passo) {
+          p.stroke(COR.grade);
+          p.line(px(x), py(0), px(x), margem.cima);
+          p.noStroke();
+          p.fill(COR.texto);
+          p.textAlign(p.CENTER, p.TOP);
+          p.text(fmt(x), px(x), py(0) + 6);
+        }
+        for (let y = 0; y <= yMax + 1e-9; y += passo) {
+          p.stroke(COR.grade);
+          p.line(px(0), py(y), p.width - margem.dir, py(y));
+          p.noStroke();
+          p.fill(COR.texto);
+          p.textAlign(p.RIGHT, p.CENTER);
+          p.text(fmt(y), margem.esq - 8, py(y));
+        }
+        p.textAlign(p.RIGHT, p.TOP);
+        p.text('x (m)', p.width - margem.dir, py(0) + 22);
+        p.textAlign(p.LEFT, p.TOP);
+        p.text('y (m)', 6, margem.cima - 18 > 0 ? margem.cima - 18 : 2);
+
+        // chão
+        p.stroke(COR.eixo);
+        p.strokeWeight(2);
+        p.line(margem.esq, py(0), p.width - margem.dir, py(0));
+      }
+
+      function seta(x: number, y: number, dx: number, dy: number, cor: string, rotulo: string) {
+        const len = Math.hypot(dx, dy);
+        if (len < 4) return;
+        p.stroke(cor);
+        p.fill(cor);
+        p.strokeWeight(2.5);
+        p.line(x, y, x + dx, y + dy);
+        p.push();
+        p.translate(x + dx, y + dy);
+        p.rotate(Math.atan2(dy, dx));
+        p.noStroke();
+        p.triangle(0, 0, -10, -5, -10, 5);
+        p.pop();
+        p.noStroke();
+        p.textSize(14);
+        p.textStyle(p.BOLD);
+        p.textAlign(p.LEFT, p.BOTTOM);
+        p.text(rotulo, x + dx + 6, y + dy - 2);
+        p.textStyle(p.NORMAL);
+      }
+    }, sim.palco);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-sim="lancamento-obliquo"]').forEach((root) => montar(iniciarSim(root)));
+</script>

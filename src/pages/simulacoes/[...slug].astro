@@ -1,0 +1,52 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const sims = await getCollection('simulacoes', ({ data }) => import.meta.env.DEV || !data.rascunho);
+  return sims.map((sim) => ({ params: { slug: sim.id }, props: { sim } }));
+}
+
+const { sim } = Astro.props;
+const { Content } = await render(sim);
+const nomeDisciplina = sim.data.disciplina === 'fisica' ? 'Física' : 'Matemática';
+---
+
+<Layout title={sim.data.titulo} description={sim.data.descricao}>
+  <article class="container">
+    <header class="cabecalho">
+      <a href={`/#${sim.data.disciplina}`} class="voltar">← {nomeDisciplina}</a>
+      <h1>{sim.data.titulo}</h1>
+      <p>{sim.data.descricao}</p>
+      {sim.data.serie && <span class={`tag tag-${sim.data.disciplina}`}>{sim.data.serie}</span>}
+    </header>
+    <div class="prose conteudo">
+      <Content />
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .cabecalho {
+    padding: 2rem 0 0.5rem;
+  }
+  .voltar {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    margin: 0.5rem 0;
+  }
+  .cabecalho p {
+    color: var(--muted);
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+  }
+  /* A simulação ocupa a largura toda; o texto fica em coluna legível */
+  .conteudo :global(.sim) {
+    max-width: none;
+    width: min(1100px, 100vw - 32px);
+  }
+</style>

@@ -1,0 +1,81 @@
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --ink: #1d1f24;
+  --muted: #5f6470;
+  --line: #e4e1da;
+  --fisica: #2563eb;
+  --fisica-soft: #e8efff;
+  --matematica: #c2410c;
+  --matematica-soft: #fdeee4;
+  --accent: var(--fisica);
+  --radius: 14px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.container {
+  width: min(1100px, 100% - 32px);
+  margin-inline: auto;
+}
+
+.prose {
+  max-width: 72ch;
+}
+
+.prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tag-fisica {
+  background: var(--fisica-soft);
+  color: var(--fisica);
+}
+
+.tag-matematica {
+  background: var(--matematica-soft);
+  color: var(--matematica);
+}

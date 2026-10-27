@@ -1,0 +1,79 @@
+---
+interface Props {
+  param: string;
+  rotulo: string;
+  min: number;
+  max: number;
+  passo?: number;
+  valor: number;
+  unidade?: string;
+  /** Atalhos que definem o valor, ex.: [{ rotulo: 'Terra', valor: 9.8 }] */
+  presets?: { rotulo: string; valor: number }[];
+}
+
+const { param, rotulo, min, max, passo = 1, valor, unidade = '', presets = [] } = Astro.props;
+const inputId = `p-${param}`;
+---
+
+<div class="controle">
+  <div class="topo">
+    <label for={inputId}>{rotulo}</label>
+    <span class="valor"><output for={inputId}>{valor}</output>{unidade === '°' ? unidade : ` ${unidade}`}</span>
+  </div>
+  <input id={inputId} type="range" data-param={param} min={min} max={max} step={passo} value={valor} />
+  {
+    presets.length > 0 && (
+      <div class="presets">
+        {presets.map((p) => (
+          <button type="button" data-preset={param} data-valor={p.valor}>
+            {p.rotulo}
+          </button>
+        ))}
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  label {
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  .valor {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  input[type='range'] {
+    width: 100%;
+    height: 28px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+  }
+  .presets button {
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .presets button:hover {
+    border-color: var(--accent);
+  }
+</style>
